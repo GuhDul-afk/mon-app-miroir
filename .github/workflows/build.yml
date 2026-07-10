@@ -22,10 +22,12 @@ jobs:
       run: |
         pip install PyQt5 pyinstaller
         
-    - name: Télécharger scrcpy Windows
+    - name: Télécharger et préparer scrcpy Windows
       run: |
         Invoke-WebRequest -Uri "https://github.com/Genymobile/scrcpy/releases/download/v2.4/scrcpy-win64-v2.4.zip" -OutFile "scrcpy.zip"
-        Expand-Archive -Path "scrcpy.zip" -DestinationPath "scrcpy-windows" -Force
+        mkdir scrcpy-windows
+        Expand-Archive -Path "scrcpy.zip" -DestinationPath "temp_extract" -Force
+        Move-Item -Path "temp_extract/scrcpy-win64-v2.4/*" -Destination "scrcpy-windows/" -Force
         
     - name: Fabriquer le .exe
       run: |
