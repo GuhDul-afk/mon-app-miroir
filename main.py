@@ -67,7 +67,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.addWidget(usb_button)
         
         # Bouton Configurer Wi-Fi
-        wifi_config_button = QPushButton("⚙️ Configurer Wi-Fi")
+        wifi_config_button = QPushButton("️ Configurer Wi-Fi")
         wifi_config_button.setStyleSheet("""
             QPushButton {
                 background-color: #e67e22;
@@ -85,7 +85,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.addWidget(wifi_config_button)
         
         # Bouton Wi-Fi
-        wifi_button = QPushButton("📶 Connexion Wi-Fi")
+        wifi_button = QPushButton(" Connexion Wi-Fi")
         wifi_button.setStyleSheet("""
             QPushButton {
                 background-color: #27ae60;
@@ -133,28 +133,43 @@ class ScreenMirrorApp(QMainWindow):
         self.status_label.setText("⚙️ Configuration Wi-Fi en cours...")
         QApplication.processEvents()
         try:
-            # Vérifier si un appareil est connecté en USB
+            # Vérifier si un appareil est connecté en USB (timeout 30s)
             devices_result = subprocess.run([self.adb_path, "devices"], 
-                                          capture_output=True, text=True, timeout=5)
-            if "device" not in devices_result.stdout:
+                                          capture_output=True, text=True, timeout=30)
+            
+            # Compter les appareils connectés (ignorer la ligne d'en-tête)
+            lines = devices_result.stdout.strip().split('\n')
+            device_count = sum(1 for line in lines[1:] if line.strip() and "device" in line and "unauthorized" not in line)
+            
+            if device_count == 0:
                 raise Exception("Aucun appareil connecté en USB. Branchez d'abord le câble.")
             
-            # Configurer ADB en mode TCP/IP
+            # Configurer ADB en mode TCP/IP (timeout 30s)
             result = subprocess.run([self.adb_path, "tcpip", "5555"],
-                                  capture_output=True, text=True, timeout=5)
-            if "restarting in TCP mode" not in result.stdout.lower():
+                                  capture_output=True, text=True, timeout=30)
+            
+            if "restarting in TCP mode" not in result.stdout.lower() and result.returncode != 0:
                 raise Exception(f"Erreur lors de la configuration : {result.stderr}")
             
             self.status_label.setText("✅ Configuration Wi-Fi réussie ! Débranchez le câble.")
             QMessageBox.information(self, "Succès", 
-                                  "Configuration Wi-Fi réussie !\n"
-                                  "Débranchez le câble USB et connectez-vous via Wi-Fi.")
+                                  "Configuration Wi-Fi réussie !\n\n"
+                                  "1️⃣ Débranchez le câble USB\n"
+                                  "2️⃣ Cliquez sur 'Connexion Wi-Fi'")
+        except subprocess.TimeoutExpired:
+            QMessageBox.critical(self, "Erreur", 
+                               "La commande ADB a pris trop de temps.\n\n"
+                               "Vérifiez que :\n"
+                               "- Le câble USB est bien branché\n"
+                               "- Le débogage USB est activé sur le téléphone\n"
+                               "- Vous avez accepté l'autorisation sur le téléphone")
+            self.status_label.setText("Prêt à configurer...")
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Impossible de configurer Wi-Fi :\n{str(e)}")
             self.status_label.setText("Prêt à configurer...")
     
     def connect_usb(self):
-        self.status_label.setText("🔌 Connexion USB en cours...")
+        self.status_label.setText(" Connexion USB en cours...")
         self.launch_scrcpy()
     
     def connect_wifi(self):
@@ -162,9 +177,9 @@ class ScreenMirrorApp(QMainWindow):
         QApplication.processEvents()
 
         try:
-            # Lister les appareils ADB (y compris ceux en Wi-Fi)
+            # Lister les appareils ADB (timeout 30s)
             result = subprocess.run([self.adb_path, "devices", "-l"], 
-                                  capture_output=True, text=True, timeout=5)
+                                  capture_output=True, text=True, timeout=30)
             
             if result.returncode != 0:
                 raise Exception(f"Erreur ADB : {result.stderr}")
@@ -196,10 +211,11 @@ class ScreenMirrorApp(QMainWindow):
             if not devices:
                 QMessageBox.warning(self, "Aucun appareil", 
                                    "Aucun téléphone en Wi-Fi détecté.\n\n"
-                                   "✅ Vérifiez :\n"
-                                   "- Le téléphone est sur le même Wi-Fi que le PC\n"
-                                   "- Vous avez exécuté 'Configurer Wi-Fi' une fois\n"
-                                   "- Le débogage USB est activé")
+                                   "✅ Pour activer le Wi-Fi :\n"
+                                   "1️⃣ Branchez le téléphone en USB\n"
+                                   "2️⃣ Cliquez sur 'Configurer Wi-Fi'\n"
+                                   "3️⃣ Débranchez le câble\n"
+                                   "4️⃣ Cliquez sur 'Connexion Wi-Fi'")
                 self.status_label.setText("Prêt à connecter...")
                 return
 
@@ -234,16 +250,21 @@ class ScreenMirrorApp(QMainWindow):
             if dialog.exec_() == QDialog.Accepted:
                 pass
 
+        except subprocess.TimeoutExpired:
+            QMessageBox.critical(self, "Erreur", 
+                               "La recherche d'appareils a pris trop de temps.\n\n"
+                               "Vérifiez que le téléphone est sur le même réseau Wi-Fi.")
+            self.status_label.setText("Prêt à connecter...")
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Impossible de lister les appareils :\n{str(e)}")
             self.status_label.setText("Prêt à connecter...")
 
     def connect_to_device(self, ip_port):
-        self.status_label.setText(f"📶 Connexion à {ip_port}...")
+        self.status_label.setText(f" Connexion à {ip_port}...")
         try:
-            # Se connecter (au cas où ce n'est pas encore fait)
+            # Se connecter (au cas où ce n'est pas encore fait) (timeout 30s)
             connect_result = subprocess.run([self.adb_path, "connect", ip_port],
-                                          capture_output=True, text=True, timeout=5)
+                                          capture_output=True, text=True, timeout=30)
             if "connected" not in connect_result.stdout.lower():
                 raise Exception(f"Échec de connexion : {connect_result.stderr}")
 
@@ -252,6 +273,11 @@ class ScreenMirrorApp(QMainWindow):
             subprocess.Popen(cmd)
             self.status_label.setText("✅ Partage d'écran Wi-Fi actif")
 
+        except subprocess.TimeoutExpired:
+            QMessageBox.critical(self, "Erreur", 
+                               "La connexion a pris trop de temps.\n\n"
+                               "Vérifiez que le téléphone est allumé et sur le même Wi-Fi.")
+            self.status_label.setText("Prêt à connecter...")
         except Exception as e:
             QMessageBox.critical(self, "Erreur", f"Impossible de lancer le partage :\n{str(e)}")
             self.status_label.setText("Prêt à connecter...")
