@@ -2,9 +2,10 @@ import sys
 import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
-                             QWidget, QLabel, QHBoxLayout, QFrame, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
-from PyQt5.QtGui import QFont, QColor
+                             QWidget, QLabel, QHBoxLayout, QFrame, QGraphicsDropShadowEffect,
+                             QMessageBox)
+from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve
+from PyQt5.QtGui import QFont, QColor, QCursor
 
 def resource_path(relative_path):
     try:
@@ -12,6 +13,64 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+class AppleButton(QPushButton):
+    """Bouton personnalisé style Apple"""
+    def __init__(self, text, description, color, hover_color):
+        super().__init__()
+        self.setFixedHeight(120)
+        self.color = color
+        self.hover_color = hover_color
+        self.setCursor(QCursor(Qt.PointingHandCursor))
+        
+        # Layout interne
+        layout = QVBoxLayout()
+        layout.setContentsMargins(30, 25, 30, 25)
+        layout.setSpacing(8)
+        
+        # Texte principal
+        self.btn_text = QLabel(text)
+        self.btn_text.setStyleSheet("""
+            font-size: 22px;
+            font-weight: 600;
+            color: white;
+            letter-spacing: 0.3px;
+        """)
+        self.btn_text.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.btn_text)
+        
+        # Description
+        self.btn_desc = QLabel(description)
+        self.btn_desc.setStyleSheet("""
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 400;
+        """)
+        self.btn_desc.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self.btn_desc)
+        
+        self.setLayout(layout)
+        self.update_style()
+    
+    def update_style(self):
+        self.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {self.color};
+                border-radius: 16px;
+                border: none;
+            }}
+            QPushButton:hover {{
+                background-color: {self.hover_color};
+            }}
+        """)
+        
+        # Ajouter ombre
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(20)
+        shadow.setXOffset(0)
+        shadow.setYOffset(4)
+        shadow.setColor(QColor(0, 0, 0, 60))
+        self.setGraphicsEffect(shadow)
 
 class ScreenMirrorApp(QMainWindow):
     def __init__(self):
@@ -82,7 +141,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.addSpacing(20)
         
         # Bouton Connecter USB - Style Apple
-        self.connect_button = self.create_apple_button(
+        self.connect_button = AppleButton(
             "Connecter",
             "Branchez votre téléphone et cliquez pour démarrer",
             "#0071e3",  # Bleu Apple
@@ -92,7 +151,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.addWidget(self.connect_button)
         
         # Bouton Déconnecter (caché au début)
-        self.disconnect_button = self.create_apple_button(
+        self.disconnect_button = AppleButton(
             "Déconnecter",
             "Arrêter le partage d'écran",
             "#ff3b30",  # Rouge Apple
@@ -140,55 +199,8 @@ class ScreenMirrorApp(QMainWindow):
         
         central_widget.setLayout(layout)
     
-    def create_apple_button(self, text, description, color, hover_color):
-        button_widget = QWidget()
-        button_widget.setFixedHeight(120)
-        button_widget.setStyleSheet(f"""
-            QWidget {{
-                background-color: {color};
-                border-radius: 16px;
-            }}
-            QWidget:hover {{
-                background-color: {hover_color};
-            }}
-        """)
-        
-        # Ajouter ombre
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
-        shadow.setXOffset(0)
-        shadow.setYOffset(4)
-        shadow.setColor(QColor(0, 0, 0, 60))
-        button_widget.setGraphicsEffect(shadow)
-        
-        layout = QVBoxLayout()
-        layout.setContentsMargins(30, 25, 30, 25)
-        layout.setSpacing(8)
-        
-        # Texte principal
-        btn_text = QLabel(text)
-        btn_text.setStyleSheet("""
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            letter-spacing: 0.3px;
-        """)
-        layout.addWidget(btn_text)
-        
-        # Description
-        btn_desc = QLabel(description)
-        btn_desc.setStyleSheet("""
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 400;
-        """)
-        layout.addWidget(btn_desc)
-        
-        button_widget.setLayout(layout)
-        return button_widget
-    
     def connect_usb(self):
-        self.status_icon.setText("🔵")
+        self.status_icon.setText("")
         self.status_label.setText("Connexion en cours...")
         self.status_label.setStyleSheet("color: #0071e3; font-weight: 500;")
         
@@ -244,7 +256,6 @@ class ScreenMirrorApp(QMainWindow):
             self.show_error(f"Erreur lors de la déconnexion: {str(e)}")
     
     def show_error(self, message):
-        from PyQt5.QtWidgets import QMessageBox
         self.status_icon.setText("🔴")
         self.status_label.setText("Erreur de connexion")
         self.status_label.setStyleSheet("color: #ff3b30; font-weight: 500;")
