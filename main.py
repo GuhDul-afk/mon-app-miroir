@@ -1,27 +1,31 @@
 import sys
-import subprocess
 import os
+import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
-                             QWidget, QLabel, QComboBox, QSpinBox, QHBoxLayout,
-                             QMessageBox, QLineEdit)
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QPixmap
+                             QWidget, QLabel, QMessageBox, QListWidget, QDialog, 
+                             QDialogButtonBox, QListWidgetItem, QInputDialog)
+from PyQt5.QtCore import Qt
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 class ScreenMirrorApp(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # Configuration de la fenêtre
         self.setWindowTitle("Mon App Miroir - Partage d'écran Android")
         self.setGeometry(100, 100, 500, 400)
         
-        # Chemin vers scrcpy.exe
-        self.scrcpy_path = os.path.join(os.path.dirname(__file__), "scrcpy-windows", "scrcpy.exe")
-        self.adb_path = os.path.join(os.path.dirname(__file__), "scrcpy-windows", "adb.exe")
+        # Utilisation de la fonction magique pour les chemins
+        self.scrcpy_path = resource_path(os.path.join("scrcpy-windows", "scrcpy.exe"))
+        self.adb_path = resource_path(os.path.join("scrcpy-windows", "adb.exe"))
         
-        # Créer l'interface
         self.setup_ui()
-        
+    
     def setup_ui(self):
         # Widget central
         central_widget = QWidget()
@@ -61,6 +65,24 @@ class ScreenMirrorApp(QMainWindow):
         """)
         usb_button.clicked.connect(self.connect_usb)
         layout.addWidget(usb_button)
+        
+        # Bouton Configurer Wi-Fi
+        wifi_config_button = QPushButton("⚙️ Configurer Wi-Fi")
+        wifi_config_button.setStyleSheet("""
+            QPushButton {
+                background-color: #e67e22;
+                color: white;
+                font-size: 16px;
+                padding: 12px;
+                border-radius: 5px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #d35400;
+            }
+        """)
+        wifi_config_button.clicked.connect(self.configure_wifi)
+        layout.addWidget(wifi_config_button)
         
         # Bouton Wi-Fi
         wifi_button = QPushButton("📶 Connexion Wi-Fi")
@@ -107,38 +129,134 @@ class ScreenMirrorApp(QMainWindow):
         
         central_widget.setLayout(layout)
     
+    def configure_wifi(self):
+        self.status_label.setText("⚙️ Configuration Wi-Fi en cours...")
+        QApplication.processEvents()
+        try:
+            # Vérifier si un appareil est connecté en USB
+            devices_result = subprocess.run([self.adb_path, "devices"], 
+                                          capture_output=True, text=True, timeout=5)
+            if "device" not in devices_result.stdout:
+                raise Exception("Aucun appareil connecté en USB. Branchez d'abord le câble.")
+            
+            # Configurer ADB en mode TCP/IP
+            result = subprocess.run([self.adb_path, "tcpip", "5555"],
+                                  capture_output=True, text=True, timeout=5)
+            if "restarting in TCP mode" not in result.stdout.lower():
+                raise Exception(f"Erreur lors de la configuration : {result.stderr}")
+            
+            self.status_label.setText("✅ Configuration Wi-Fi réussie ! Débranchez le câble.")
+            QMessageBox.information(self, "Succès", 
+                                  "Configuration Wi-Fi réussie !\n"
+                                  "Débranchez le câble USB et connectez-vous via Wi-Fi.")
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Impossible de configurer Wi-Fi :\n{str(e)}")
+            self.status_label.setText("Prêt à configurer...")
+    
     def connect_usb(self):
         self.status_label.setText("🔌 Connexion USB en cours...")
         self.launch_scrcpy()
     
     def connect_wifi(self):
-        # Récupérer l'IP du téléphone
-        ip = self.get_phone_ip()
-        if ip:
-            self.status_label.setText(f"📶 Connexion Wi-Fi à {ip}...")
-            self.launch_scrcpy(is_wifi=True)
-        else:
-            QMessageBox.warning(self, "Erreur", "Impossible de détecter le téléphone en Wi-Fi")
-            self.status_label.setText("Prêt à connecter...")
-    
-    def get_phone_ip(self):
+        self.status_label.setText("🔍 Recherche des téléphones en Wi-Fi...")
+        QApplication.processEvents()
+
         try:
-            # Exécuter adb pour trouver l'IP
-            result = subprocess.run([self.adb_path, "shell", "ip", "route"], 
-                                  capture_output=True, text=True)
-            if result.returncode == 0:
-                lines = result.stdout.split('\n')
-                for line in lines:
-                    if 'src' in line:
-                        parts = line.split()
-                        if 'src' in parts:
-                            idx = parts.index('src')
-                            return parts[idx + 1]
+            # Lister les appareils ADB (y compris ceux en Wi-Fi)
+            result = subprocess.run([self.adb_path, "devices", "-l"], 
+                                  capture_output=True, text=True, timeout=5)
+            
+            if result.returncode != 0:
+                raise Exception(f"Erreur ADB : {result.stderr}")
+
+            lines = result.stdout.strip().split('\n')
+            devices = []
+            
+            for line in lines[1:]:  # sauter la première ligne
+                if not line.strip() or "unauthorized" in line or "offline" in line:
+                    continue
+                parts = line.split()
+                if len(parts) < 2:
+                    continue
+                
+                serial = parts[0]
+                # Si l'ID contient un :, c'est un appareil Wi-Fi
+                if ':' in serial and '.' in serial.split(':')[0]:
+                    ip_port = serial
+                    # Extraire le nom du modèle
+                    model = "Android Device"
+                    for part in parts[1:]:
+                        if "model:" in part:
+                            model = part.replace("model:", "").replace("_", " ")
+                            break
+                        elif "device:" in part:
+                            model = part.replace("device:", "").replace("_", " ")
+                    devices.append((ip_port, model))
+
+            if not devices:
+                QMessageBox.warning(self, "Aucun appareil", 
+                                   "Aucun téléphone en Wi-Fi détecté.\n\n"
+                                   "✅ Vérifiez :\n"
+                                   "- Le téléphone est sur le même Wi-Fi que le PC\n"
+                                   "- Vous avez exécuté 'Configurer Wi-Fi' une fois\n"
+                                   "- Le débogage USB est activé")
+                self.status_label.setText("Prêt à connecter...")
+                return
+
+            # Créer une boîte de dialogue avec liste
+            dialog = QDialog(self)
+            dialog.setWindowTitle("Sélectionnez votre téléphone")
+            layout = QVBoxLayout()
+
+            list_widget = QListWidget()
+            for ip_port, model in devices:
+                item = QListWidgetItem(f"{model} ({ip_port})")
+                item.setData(Qt.UserRole, ip_port)
+                list_widget.addItem(item)
+
+            layout.addWidget(list_widget)
+            button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+            layout.addWidget(button_box)
+            dialog.setLayout(layout)
+
+            def on_ok():
+                selected = list_widget.currentItem()
+                if selected:
+                    ip_port = selected.data(Qt.UserRole)
+                    dialog.accept()
+                    self.connect_to_device(ip_port)
+                else:
+                    QMessageBox.warning(dialog, "Erreur", "Veuillez choisir un téléphone.")
+            
+            button_box.accepted.connect(on_ok)
+            button_box.rejected.connect(dialog.reject)
+
+            if dialog.exec_() == QDialog.Accepted:
+                pass
+
         except Exception as e:
-            print(f"Erreur: {e}")
-        return None
-    
-    def launch_scrcpy(self, is_wifi=False):
+            QMessageBox.critical(self, "Erreur", f"Impossible de lister les appareils :\n{str(e)}")
+            self.status_label.setText("Prêt à connecter...")
+
+    def connect_to_device(self, ip_port):
+        self.status_label.setText(f"📶 Connexion à {ip_port}...")
+        try:
+            # Se connecter (au cas où ce n'est pas encore fait)
+            connect_result = subprocess.run([self.adb_path, "connect", ip_port],
+                                          capture_output=True, text=True, timeout=5)
+            if "connected" not in connect_result.stdout.lower():
+                raise Exception(f"Échec de connexion : {connect_result.stderr}")
+
+            # Lancer scrcpy
+            cmd = [self.scrcpy_path, "--tcpip"]
+            subprocess.Popen(cmd)
+            self.status_label.setText("✅ Partage d'écran Wi-Fi actif")
+
+        except Exception as e:
+            QMessageBox.critical(self, "Erreur", f"Impossible de lancer le partage :\n{str(e)}")
+            self.status_label.setText("Prêt à connecter...")
+
+    def launch_scrcpy(self):
         try:
             # Commande scrcpy de base
             cmd = [self.scrcpy_path]
@@ -147,10 +265,6 @@ class ScreenMirrorApp(QMainWindow):
             cmd.extend(["--max-size", "1080"])  # Résolution max 1080p
             cmd.extend(["--max-fps", "60"])      # 60 FPS
             cmd.extend(["--video-bit-rate", "2M"])  # Bitrate 2 Mbps
-            
-            # Si Wi-Fi, ajouter le flag TCP
-            if is_wifi:
-                cmd.append("--tcpip")
             
             # Lancer scrcpy
             self.status_label.setText("✅ Partage d'écran actif")
