@@ -1,11 +1,9 @@
 import sys
 import os
 import subprocess
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
-                             QWidget, QLabel, QHBoxLayout, QFrame, QGraphicsDropShadowEffect,
-                             QMessageBox)
-from PyQt5.QtCore import Qt, QPropertyAnimation, QEasingCurve
-from PyQt5.QtGui import QFont, QColor, QCursor
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QVBoxLayout, QWidget, QLabel, QMessageBox
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont
 
 def resource_path(relative_path):
     try:
@@ -14,74 +12,14 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-class AppleButton(QPushButton):
-    """Bouton personnalisé style Apple"""
-    def __init__(self, text, description, color, hover_color):
-        super().__init__()
-        self.setFixedHeight(120)
-        self.color = color
-        self.hover_color = hover_color
-        self.setCursor(QCursor(Qt.PointingHandCursor))
-        
-        # Layout interne
-        layout = QVBoxLayout()
-        layout.setContentsMargins(30, 25, 30, 25)
-        layout.setSpacing(8)
-        
-        # Texte principal
-        self.btn_text = QLabel(text)
-        self.btn_text.setStyleSheet("""
-            font-size: 22px;
-            font-weight: 600;
-            color: white;
-            letter-spacing: 0.3px;
-        """)
-        self.btn_text.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.btn_text)
-        
-        # Description
-        self.btn_desc = QLabel(description)
-        self.btn_desc.setStyleSheet("""
-            font-size: 13px;
-            color: rgba(255, 255, 255, 0.8);
-            font-weight: 400;
-        """)
-        self.btn_desc.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.btn_desc)
-        
-        self.setLayout(layout)
-        self.update_style()
-    
-    def update_style(self):
-        self.setStyleSheet(f"""
-            QPushButton {{
-                background-color: {self.color};
-                border-radius: 16px;
-                border: none;
-            }}
-            QPushButton:hover {{
-                background-color: {self.hover_color};
-            }}
-        """)
-        
-        # Ajouter ombre
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(20)
-        shadow.setXOffset(0)
-        shadow.setYOffset(4)
-        shadow.setColor(QColor(0, 0, 0, 60))
-        self.setGraphicsEffect(shadow)
-
 class ScreenMirrorApp(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        # Configuration fenêtre
         self.setWindowTitle("ScreenMirror")
-        self.setFixedSize(600, 500)
+        self.setFixedSize(500, 400)
         self.setStyleSheet("background-color: #f5f5f7;")
         
-        # Chemins
         self.scrcpy_path = resource_path(os.path.join("scrcpy-windows", "scrcpy.exe"))
         self.adb_path = resource_path(os.path.join("scrcpy-windows", "adb.exe"))
         
@@ -92,145 +30,115 @@ class ScreenMirrorApp(QMainWindow):
         self.setCentralWidget(central_widget)
         
         layout = QVBoxLayout()
-        layout.setSpacing(30)
-        layout.setContentsMargins(60, 60, 60, 60)
+        layout.setSpacing(20)
+        layout.setContentsMargins(40, 40, 40, 40)
         
-        # Logo/Titre style Apple
-        title_container = QWidget()
-        title_layout = QVBoxLayout()
-        title_layout.setAlignment(Qt.AlignCenter)
-        
-        # Logo (emoji ou icône)
-        logo = QLabel("📱")
-        logo.setAlignment(Qt.AlignCenter)
-        logo.setStyleSheet("font-size: 64px; padding: 20px;")
-        title_layout.addWidget(logo)
-        
-        # Titre principal
-        title = QLabel("ScreenMirror")
+        # Titre
+        title = QLabel("📱 ScreenMirror")
         title.setAlignment(Qt.AlignCenter)
-        title.setStyleSheet("""
-            font-size: 32px;
-            font-weight: 600;
-            color: #1d1d1f;
-            letter-spacing: -0.5px;
-        """)
-        title_layout.addWidget(title)
+        title.setStyleSheet("font-size: 28px; font-weight: bold; color: #1d1d1f; margin: 20px;")
+        layout.addWidget(title)
         
-        # Sous-titre
         subtitle = QLabel("Partage d'écran Android haute qualité")
         subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet("""
-            font-size: 15px;
-            color: #86868b;
-            font-weight: 400;
-        """)
-        title_layout.addWidget(subtitle)
+        subtitle.setStyleSheet("font-size: 14px; color: #86868b; margin-bottom: 30px;")
+        layout.addWidget(subtitle)
         
-        title_container.setLayout(title_layout)
-        layout.addWidget(title_container)
-        
-        layout.addSpacing(20)
-        
-        # Séparateur subtil
-        separator = QFrame()
-        separator.setFrameShape(QFrame.HLine)
-        separator.setStyleSheet("background-color: #d2d2d7; min-height: 1px; max-height: 1px;")
+        # Séparateur
+        separator = QLabel("________________________________________")
+        separator.setAlignment(Qt.AlignCenter)
+        separator.setStyleSheet("color: #d2d2d7;")
         layout.addWidget(separator)
         
-        layout.addSpacing(20)
+        layout.addSpacing(30)
         
-        # Bouton Connecter USB - Style Apple
-        self.connect_button = AppleButton(
-            "Connecter",
-            "Branchez votre téléphone et cliquez pour démarrer",
-            "#0071e3",  # Bleu Apple
-            "#0077ed"
-        )
+        # Bouton Connecter
+        self.connect_button = QPushButton("🔌 Connecter")
+        self.connect_button.setFixedHeight(60)
+        self.connect_button.setStyleSheet("""
+            QPushButton {
+                background-color: #0071e3;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 12px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #0077ed;
+            }
+            QPushButton:pressed {
+                background-color: #005ecb;
+            }
+        """)
         self.connect_button.clicked.connect(self.connect_usb)
         layout.addWidget(self.connect_button)
         
-        # Bouton Déconnecter (caché au début)
-        self.disconnect_button = AppleButton(
-            "Déconnecter",
-            "Arrêter le partage d'écran",
-            "#ff3b30",  # Rouge Apple
-            "#ff453a"
-        )
+        # Bouton Déconnecter
+        self.disconnect_button = QPushButton(" Déconnecter")
+        self.disconnect_button.setFixedHeight(60)
+        self.disconnect_button.setStyleSheet("""
+            QPushButton {
+                background-color: #ff3b30;
+                color: white;
+                font-size: 18px;
+                font-weight: bold;
+                border-radius: 12px;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #ff453a;
+            }
+            QPushButton:pressed {
+                background-color: #e6352b;
+            }
+        """)
         self.disconnect_button.clicked.connect(self.disconnect)
         self.disconnect_button.setVisible(False)
         layout.addWidget(self.disconnect_button)
         
         layout.addStretch()
         
-        # Status moderne
-        self.status_container = QWidget()
-        status_layout = QVBoxLayout()
-        status_layout.setAlignment(Qt.AlignCenter)
-        
-        self.status_icon = QLabel("⚪")
-        self.status_icon.setAlignment(Qt.AlignCenter)
-        self.status_icon.setStyleSheet("font-size: 24px;")
-        status_layout.addWidget(self.status_icon)
-        
-        self.status_label = QLabel("Prêt à connecter")
+        # Status
+        self.status_label = QLabel("⚪ Prêt à connecter")
         self.status_label.setAlignment(Qt.AlignCenter)
-        self.status_label.setStyleSheet("""
-            font-size: 14px;
-            color: #86868b;
-            font-weight: 400;
-        """)
-        status_layout.addWidget(self.status_label)
+        self.status_label.setStyleSheet("font-size: 15px; color: #86868b; padding: 20px;")
+        layout.addWidget(self.status_label)
         
-        self.status_container.setLayout(status_layout)
-        layout.addWidget(self.status_container)
-        
-        # Qualité badge
-        quality_badge = QLabel("🎬 Qualité Max: 1080p • 60fps • 8Mbps")
-        quality_badge.setAlignment(Qt.AlignCenter)
-        quality_badge.setStyleSheet("""
-            font-size: 12px;
-            color: #86868b;
-            background-color: #ffffff;
-            padding: 8px 16px;
-            border-radius: 12px;
-        """)
-        layout.addWidget(quality_badge)
+        # Info qualité
+        quality_label = QLabel("🎬 1080p • 60fps • 8Mbps")
+        quality_label.setAlignment(Qt.AlignCenter)
+        quality_label.setStyleSheet("font-size: 12px; color: #86868b; background-color: white; padding: 10px; border-radius: 8px;")
+        layout.addWidget(quality_label)
         
         central_widget.setLayout(layout)
     
     def connect_usb(self):
-        self.status_icon.setText("")
-        self.status_label.setText("Connexion en cours...")
-        self.status_label.setStyleSheet("color: #0071e3; font-weight: 500;")
+        self.status_label.setText("🔵 Connexion en cours...")
+        self.status_label.setStyleSheet("font-size: 15px; color: #0071e3; padding: 20px; font-weight: bold;")
         
         try:
-            # Vérifier la connexion ADB
             result = subprocess.run([self.adb_path, "devices"], 
                                   capture_output=True, text=True, timeout=10)
             
             if "device" not in result.stdout:
                 raise Exception("Aucun appareil détecté. Vérifiez le câble USB et le débogage.")
             
-            # Lancer scrcpy en qualité MAXIMALE
             cmd = [
                 self.scrcpy_path,
-                "--max-size", "0",           # Pas de réduction (résolution native)
-                "--max-fps", "60",           # 60 FPS
-                "--video-bit-rate", "8M",    # 8 Mbps (haute qualité)
-                "--audio-bit-rate", "128K",  # Audio haute qualité
-                "--render-driver", "opengl", # Rendu OpenGL
+                "--max-size", "0",
+                "--max-fps", "60",
+                "--video-bit-rate", "8M",
+                "--audio-bit-rate", "128K",
+                "--render-driver", "opengl",
                 "--window-title", "ScreenMirror",
-                "--always-on-top",           # Toujours au premier plan
-                "--turn-screen-off"          # Éteindre l'écran du téléphone (optionnel)
+                "--always-on-top"
             ]
             
             self.process = subprocess.Popen(cmd)
             
-            # Mettre à jour l'interface
-            self.status_icon.setText("🟢")
-            self.status_label.setText("Connecté - Qualité maximale")
-            self.status_label.setStyleSheet("color: #34c759; font-weight: 500;")
+            self.status_label.setText("🟢 Connecté - Qualité maximale")
+            self.status_label.setStyleSheet("font-size: 15px; color: #34c759; padding: 20px; font-weight: bold;")
             
             self.connect_button.setVisible(False)
             self.disconnect_button.setVisible(True)
@@ -245,56 +153,25 @@ class ScreenMirrorApp(QMainWindow):
             if hasattr(self, 'process'):
                 self.process.terminate()
             
-            self.status_icon.setText("")
-            self.status_label.setText("Déconnecté")
-            self.status_label.setStyleSheet("color: #86868b; font-weight: 400;")
+            self.status_label.setText("⚪ Prêt à connecter")
+            self.status_label.setStyleSheet("font-size: 15px; color: #86868b; padding: 20px;")
             
             self.connect_button.setVisible(True)
             self.disconnect_button.setVisible(False)
             
         except Exception as e:
-            self.show_error(f"Erreur lors de la déconnexion: {str(e)}")
+            QMessageBox.critical(self, "Erreur", f"Erreur: {str(e)}")
     
     def show_error(self, message):
-        self.status_icon.setText("🔴")
-        self.status_label.setText("Erreur de connexion")
-        self.status_label.setStyleSheet("color: #ff3b30; font-weight: 500;")
-        
-        msg = QMessageBox()
-        msg.setWindowTitle("Erreur")
-        msg.setText(message)
-        msg.setStyleSheet("""
-            QMessageBox {
-                background-color: white;
-            }
-            QLabel {
-                color: #1d1d1f;
-                font-size: 13px;
-            }
-            QPushButton {
-                background-color: #0071e3;
-                color: white;
-                border-radius: 8px;
-                padding: 8px 16px;
-                font-weight: 500;
-            }
-            QPushButton:hover {
-                background-color: #0077ed;
-            }
-        """)
-        msg.exec_()
-        
+        self.status_label.setText("🔴 Erreur")
+        self.status_label.setStyleSheet("font-size: 15px; color: #ff3b30; padding: 20px; font-weight: bold;")
+        QMessageBox.critical(self, "Erreur", message)
         self.connect_button.setVisible(True)
         self.disconnect_button.setVisible(False)
 
 if __name__ == "__main__":
-    # Configuration du style global
     app = QApplication(sys.argv)
-    
-    # Police système moderne
-    font = QFont("SF Pro Display", 13)
-    if not QFont("SF Pro Display").exactMatch():
-        font = QFont("Segoe UI", 13)  # Fallback pour Windows
+    font = QFont("Segoe UI", 13)
     app.setFont(font)
     
     window = ScreenMirrorApp()
