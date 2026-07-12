@@ -3,8 +3,8 @@ import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                              QWidget, QLabel, QHBoxLayout, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QFont, QColor, QRegion, QPainter, QBitmap
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QColor
 
 def resource_path(relative_path):
     try:
@@ -160,13 +160,6 @@ class ScreenMirrorApp(QMainWindow):
         layout.addSpacing(20)
         
         main_widget.setLayout(layout)
-    
-    # Masque arrondi pour supprimer les coins carrés transparents
-    def paintEvent(self, event):
-        path = QPainter(self).path()
-        path.addRoundedRect(self.rect(), 20, 20)
-        region = QRegion(path.toFillPolygon().toPolygon())
-        self.setMask(region)
     
     # Permettre le déplacement de la fenêtre
     def mousePressEvent(self, event):
