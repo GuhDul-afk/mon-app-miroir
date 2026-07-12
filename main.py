@@ -3,7 +3,7 @@ import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                              QWidget, QLabel, QHBoxLayout, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QPoint
 from PyQt5.QtGui import QFont, QColor
 
 def resource_path(relative_path):
@@ -18,19 +18,21 @@ class ScreenMirrorApp(QMainWindow):
         super().__init__()
         
         self.setWindowTitle("ScreenMirror")
-        self.setFixedSize(450, 500)
+        self.setFixedSize(450, 520)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
         
         self.scrcpy_path = resource_path(os.path.join("scrcpy-windows", "scrcpy.exe"))
         self.adb_path = resource_path(os.path.join("scrcpy-windows", "adb.exe"))
         
+        self._drag_pos = None
+        
         self.setup_ui()
     
     def setup_ui(self):
         main_widget = QWidget()
         main_widget.setStyleSheet("""
-            background-color: rgba(20, 20, 25, 240);
+            background-color: rgba(20, 20, 25, 180);
             border-radius: 20px;
         """)
         
@@ -45,18 +47,37 @@ class ScreenMirrorApp(QMainWindow):
         
         layout = QVBoxLayout()
         layout.setSpacing(25)
-        layout.setContentsMargins(40, 30, 40, 40)
+        layout.setContentsMargins(40, 20, 40, 30)
         
-        # Bouton fermer
-        close_layout = QHBoxLayout()
+        # Barre de contrôle (fermer + réduire)
+        control_layout = QHBoxLayout()
+        control_layout.setContentsMargins(0, 0, 0, 0)
+        
+        minimize_btn = QLabel("_")
+        minimize_btn.setAlignment(Qt.AlignCenter)
+        minimize_btn.setStyleSheet("""
+            color: #555; font-size: 22px; padding: 5px 10px;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        """)
+        minimize_btn.mousePressEvent = lambda event: self.showMinimized()
+        
         close_btn = QLabel("✕")
-        close_btn.setAlignment(Qt.AlignRight)
-        close_btn.setStyleSheet("color: #555; font-size: 18px; padding: 5px;")
+        close_btn.setAlignment(Qt.AlignCenter)
+        close_btn.setStyleSheet("""
+            color: #555; font-size: 18px; padding: 5px 10px;
+            background-color: rgba(255,255,255,0.05);
+            border-radius: 10px;
+        """)
         close_btn.mousePressEvent = lambda event: self.close()
-        close_layout.addWidget(close_btn)
-        layout.addLayout(close_layout)
         
-        layout.addSpacing(20)
+        control_layout.addStretch()
+        control_layout.addWidget(minimize_btn)
+        control_layout.addSpacing(10)
+        control_layout.addWidget(close_btn)
+        layout.addLayout(control_layout)
+        
+        layout.addSpacing(30)
         
         # Titre
         title = QLabel("ScreenMirror")
@@ -79,13 +100,15 @@ class ScreenMirrorApp(QMainWindow):
         
         layout.addSpacing(30)
         
-        # Zone de statut
+        # Zone de statut (sans padding fixe qui coupe le texte)
         self.status_label = QLabel("Prêt à connecter")
         self.status_label.setAlignment(Qt.AlignCenter)
+        self.status_label.setWordWrap(True)
+        self.status_label.setMinimumHeight(60)
         self.status_label.setStyleSheet("""
             font-size: 16px;
             color: #888888;
-            padding: 20px;
+            padding: 15px 20px;
             background-color: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
         """)
@@ -98,7 +121,6 @@ class ScreenMirrorApp(QMainWindow):
             font-size: 12px;
             color: #444444;
             padding: 8px;
-            margin-top: 10px;
         """)
         layout.addWidget(quality_badge)
         
@@ -126,9 +148,23 @@ class ScreenMirrorApp(QMainWindow):
         self.action_button.clicked.connect(self.toggle_connection)
         layout.addWidget(self.action_button)
         
-        layout.addSpacing(10)
+        layout.addSpacing(20)
         
         main_widget.setLayout(layout)
+    
+    # Permettre le déplacement de la fenêtre
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self._drag_pos = event.globalPos() - self.frameGeometry().topLeft()
+            event.accept()
+    
+    def mouseMoveEvent(self, event):
+        if self._drag_pos is not None and event.buttons() == Qt.LeftButton:
+            self.move(event.globalPos() - self._drag_pos)
+            event.accept()
+    
+    def mouseReleaseEvent(self, event):
+        self._drag_pos = None
     
     def toggle_connection(self):
         if self.action_button.text() == "CONNECTER":
@@ -141,7 +177,7 @@ class ScreenMirrorApp(QMainWindow):
         self.status_label.setStyleSheet("""
             font-size: 16px;
             color: #ffffff;
-            padding: 20px;
+            padding: 15px 20px;
             background-color: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
         """)
@@ -169,7 +205,7 @@ class ScreenMirrorApp(QMainWindow):
             self.status_label.setStyleSheet("""
                 font-size: 16px;
                 color: #4cd964;
-                padding: 20px;
+                padding: 15px 20px;
                 background-color: rgba(76, 217, 100, 0.1);
                 border-radius: 12px;
             """)
@@ -194,7 +230,7 @@ class ScreenMirrorApp(QMainWindow):
             self.status_label.setStyleSheet("""
                 font-size: 16px;
                 color: #FF3B30;
-                padding: 20px;
+                padding: 15px 20px;
                 background-color: rgba(255, 59, 48, 0.1);
                 border-radius: 12px;
             """)
@@ -208,7 +244,7 @@ class ScreenMirrorApp(QMainWindow):
         self.status_label.setStyleSheet("""
             font-size: 16px;
             color: #888888;
-            padding: 20px;
+            padding: 15px 20px;
             background-color: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
         """)
