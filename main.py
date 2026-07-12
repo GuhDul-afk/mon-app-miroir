@@ -49,7 +49,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.setSpacing(25)
         layout.setContentsMargins(40, 20, 40, 30)
         
-        # Barre de contrôle (fermer + réduire)
+        # Barre de contrôle
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
         
@@ -100,7 +100,7 @@ class ScreenMirrorApp(QMainWindow):
         
         layout.addSpacing(30)
         
-        # Zone de statut (sans padding fixe qui coupe le texte)
+        # Zone de statut
         self.status_label = QLabel("Prêt à connecter")
         self.status_label.setAlignment(Qt.AlignCenter)
         self.status_label.setWordWrap(True)
@@ -183,8 +183,9 @@ class ScreenMirrorApp(QMainWindow):
         """)
         
         try:
+            # Timeout augmenté à 30 secondes
             result = subprocess.run([self.adb_path, "devices"], 
-                                  capture_output=True, text=True, timeout=10)
+                                  capture_output=True, text=True, timeout=30)
             
             if "device" not in result.stdout:
                 raise Exception("Aucun appareil détecté. Vérifiez le câble USB et le débogage.")
@@ -225,6 +226,16 @@ class ScreenMirrorApp(QMainWindow):
                 }
             """)
             
+        except subprocess.TimeoutExpired:
+            self.status_label.setText("Timeout : ADB n'a pas répondu à temps. Réessayez.")
+            self.status_label.setStyleSheet("""
+                font-size: 16px;
+                color: #FF3B30;
+                padding: 15px 20px;
+                background-color: rgba(255, 59, 48, 0.1);
+                border-radius: 12px;
+            """)
+            self.action_button.setText("Réessayer")
         except Exception as e:
             self.status_label.setText(f"Erreur: {str(e)}")
             self.status_label.setStyleSheet("""
