@@ -3,8 +3,8 @@ import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                              QWidget, QLabel, QHBoxLayout, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt, QRegion
-from PyQt5.QtGui import QFont, QColor, QBitmap, QPainter
+from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtGui import QFont, QColor, QRegion, QPainter, QBitmap
 
 def resource_path(relative_path):
     try:
@@ -49,7 +49,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.setSpacing(25)
         layout.setContentsMargins(40, 20, 40, 30)
         
-        # Barre de contrôle (icônes de même taille et collées)
+        # Barre de contrôle
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.setSpacing(0)
@@ -163,7 +163,7 @@ class ScreenMirrorApp(QMainWindow):
     
     # Masque arrondi pour supprimer les coins carrés transparents
     def paintEvent(self, event):
-        path = QPainter.Path()
+        path = QPainter(self).path()
         path.addRoundedRect(self.rect(), 20, 20)
         region = QRegion(path.toFillPolygon().toPolygon())
         self.setMask(region)
