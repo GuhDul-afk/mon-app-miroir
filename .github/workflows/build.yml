@@ -31,7 +31,7 @@ jobs:
         
     - name: Fabriquer le .exe
       run: |
-        pyinstaller --onefile --windowed --name "MonAppMiroir" --add-data "scrcpy-windows/*;scrcpy-windows" main.py
+                pyinstaller --onefile --windowed --icon=icon.ico --name "ScreenMirror" --add-data "scrcpy-windows/*;scrcpy-windows" main.py
         
     - name: Sauvegarder le résultat
       uses: actions/upload-artifact@v4
