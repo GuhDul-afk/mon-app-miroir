@@ -3,8 +3,8 @@ import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                              QWidget, QLabel, QHBoxLayout, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtCore import Qt, QMargins
+from PyQt5.QtGui import QFont, QColor, QBitmap, QPainter, QRegion, QPixmap
 
 def resource_path(relative_path):
     try:
@@ -32,8 +32,7 @@ class ScreenMirrorApp(QMainWindow):
     def setup_ui(self):
         main_widget = QWidget()
         main_widget.setStyleSheet("""
-            background-color: rgba(20, 20, 25, 180);
-            border-radius: 20px;
+            background-color: rgba(20, 20, 25, 200);
         """)
         
         shadow = QGraphicsDropShadowEffect()
@@ -49,36 +48,31 @@ class ScreenMirrorApp(QMainWindow):
         layout.setSpacing(25)
         layout.setContentsMargins(40, 20, 40, 30)
         
-        # Barre de contrôle
+        # Barre de contrôle simplifiée (juste les icônes, sans fond)
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
-        control_layout.setSpacing(0)
-        
-        btn_style = """
-            QLabel {
-                color: #555;
-                font-size: 16px;
-                font-weight: bold;
-                padding: 6px 12px;
-                background-color: rgba(255,255,255,0.05);
-                border-radius: 10px;
-            }
-            QLabel:hover {
-                background-color: rgba(255,255,255,0.1);
-                color: #888;
-            }
-        """
+        control_layout.setSpacing(15)
         
         minimize_btn = QLabel("—")
         minimize_btn.setAlignment(Qt.AlignCenter)
-        minimize_btn.setStyleSheet(btn_style)
-        minimize_btn.setFixedSize(32, 32)
+        minimize_btn.setStyleSheet("""
+            color: #666;
+            font-size: 20px;
+            font-weight: 300;
+        """)
+        minimize_btn.setFixedSize(24, 24)
+        minimize_btn.setCursor(Qt.PointingHandCursor)
         minimize_btn.mousePressEvent = lambda event: self.showMinimized()
         
-        close_btn = QLabel("✕")
+        close_btn = QLabel("")
         close_btn.setAlignment(Qt.AlignCenter)
-        close_btn.setStyleSheet(btn_style)
-        close_btn.setFixedSize(32, 32)
+        close_btn.setStyleSheet("""
+            color: #666;
+            font-size: 18px;
+            font-weight: 400;
+        """)
+        close_btn.setFixedSize(24, 24)
+        close_btn.setCursor(Qt.PointingHandCursor)
         close_btn.mousePressEvent = lambda event: self.close()
         
         control_layout.addStretch()
@@ -123,16 +117,6 @@ class ScreenMirrorApp(QMainWindow):
         """)
         layout.addWidget(self.status_label)
         
-        # Badge qualité
-        quality_badge = QLabel("1080p • 60fps • 8Mbps")
-        quality_badge.setAlignment(Qt.AlignCenter)
-        quality_badge.setStyleSheet("""
-            font-size: 12px;
-            color: #444444;
-            padding: 8px;
-        """)
-        layout.addWidget(quality_badge)
-        
         layout.addStretch()
         
         # Bouton principal
@@ -160,6 +144,23 @@ class ScreenMirrorApp(QMainWindow):
         layout.addSpacing(20)
         
         main_widget.setLayout(layout)
+    
+    # Appliquer un masque arrondi à toute la fenêtre
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Créer un bitmap avec les coins arrondis
+        pixmap = QPixmap(self.size())
+        pixmap.fill(Qt.transparent)
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(Qt.white)
+        painter.setPen(Qt.NoPen)
+        painter.drawRoundedRect(self.rect(), 20, 20)
+        painter.end()
+        
+        # Créer le masque
+        mask = QBitmap.fromImage(pixmap.toImage())
+        self.setMask(mask)
     
     # Permettre le déplacement de la fenêtre
     def mousePressEvent(self, event):
