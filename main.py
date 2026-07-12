@@ -3,8 +3,8 @@ import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                              QWidget, QLabel, QHBoxLayout, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt, QMargins
-from PyQt5.QtGui import QFont, QColor, QBitmap, QPainter, QRegion, QPixmap
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QFont, QColor
 
 def resource_path(relative_path):
     try:
@@ -33,6 +33,7 @@ class ScreenMirrorApp(QMainWindow):
         main_widget = QWidget()
         main_widget.setStyleSheet("""
             background-color: rgba(20, 20, 25, 200);
+            border-radius: 20px;
         """)
         
         shadow = QGraphicsDropShadowEffect()
@@ -48,7 +49,7 @@ class ScreenMirrorApp(QMainWindow):
         layout.setSpacing(25)
         layout.setContentsMargins(40, 20, 40, 30)
         
-        # Barre de contrôle simplifiée (juste les icônes, sans fond)
+        # Barre de contrôle
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
         control_layout.setSpacing(15)
@@ -64,7 +65,7 @@ class ScreenMirrorApp(QMainWindow):
         minimize_btn.setCursor(Qt.PointingHandCursor)
         minimize_btn.mousePressEvent = lambda event: self.showMinimized()
         
-        close_btn = QLabel("")
+        close_btn = QLabel("✕")
         close_btn.setAlignment(Qt.AlignCenter)
         close_btn.setStyleSheet("""
             color: #666;
@@ -144,23 +145,6 @@ class ScreenMirrorApp(QMainWindow):
         layout.addSpacing(20)
         
         main_widget.setLayout(layout)
-    
-    # Appliquer un masque arrondi à toute la fenêtre
-    def showEvent(self, event):
-        super().showEvent(event)
-        # Créer un bitmap avec les coins arrondis
-        pixmap = QPixmap(self.size())
-        pixmap.fill(Qt.transparent)
-        painter = QPainter(pixmap)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setBrush(Qt.white)
-        painter.setPen(Qt.NoPen)
-        painter.drawRoundedRect(self.rect(), 20, 20)
-        painter.end()
-        
-        # Créer le masque
-        mask = QBitmap.fromImage(pixmap.toImage())
-        self.setMask(mask)
     
     # Permettre le déplacement de la fenêtre
     def mousePressEvent(self, event):
