@@ -3,8 +3,8 @@ import os
 import subprocess
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QPushButton, QVBoxLayout, 
                              QWidget, QLabel, QHBoxLayout, QGraphicsDropShadowEffect)
-from PyQt5.QtCore import Qt, QPoint
-from PyQt5.QtGui import QFont, QColor
+from PyQt5.QtCore import Qt, QRegion
+from PyQt5.QtGui import QFont, QColor, QBitmap, QPainter
 
 def resource_path(relative_path):
     try:
@@ -49,31 +49,40 @@ class ScreenMirrorApp(QMainWindow):
         layout.setSpacing(25)
         layout.setContentsMargins(40, 20, 40, 30)
         
-        # Barre de contrôle
+        # Barre de contrôle (icônes de même taille et collées)
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
+        control_layout.setSpacing(0)
         
-        minimize_btn = QLabel("_")
+        btn_style = """
+            QLabel {
+                color: #555;
+                font-size: 16px;
+                font-weight: bold;
+                padding: 6px 12px;
+                background-color: rgba(255,255,255,0.05);
+                border-radius: 10px;
+            }
+            QLabel:hover {
+                background-color: rgba(255,255,255,0.1);
+                color: #888;
+            }
+        """
+        
+        minimize_btn = QLabel("—")
         minimize_btn.setAlignment(Qt.AlignCenter)
-        minimize_btn.setStyleSheet("""
-            color: #555; font-size: 22px; padding: 5px 10px;
-            background-color: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        """)
+        minimize_btn.setStyleSheet(btn_style)
+        minimize_btn.setFixedSize(32, 32)
         minimize_btn.mousePressEvent = lambda event: self.showMinimized()
         
         close_btn = QLabel("✕")
         close_btn.setAlignment(Qt.AlignCenter)
-        close_btn.setStyleSheet("""
-            color: #555; font-size: 18px; padding: 5px 10px;
-            background-color: rgba(255,255,255,0.05);
-            border-radius: 10px;
-        """)
+        close_btn.setStyleSheet(btn_style)
+        close_btn.setFixedSize(32, 32)
         close_btn.mousePressEvent = lambda event: self.close()
         
         control_layout.addStretch()
         control_layout.addWidget(minimize_btn)
-        control_layout.addSpacing(10)
         control_layout.addWidget(close_btn)
         layout.addLayout(control_layout)
         
@@ -152,6 +161,13 @@ class ScreenMirrorApp(QMainWindow):
         
         main_widget.setLayout(layout)
     
+    # Masque arrondi pour supprimer les coins carrés transparents
+    def paintEvent(self, event):
+        path = QPainter.Path()
+        path.addRoundedRect(self.rect(), 20, 20)
+        region = QRegion(path.toFillPolygon().toPolygon())
+        self.setMask(region)
+    
     # Permettre le déplacement de la fenêtre
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
@@ -165,6 +181,15 @@ class ScreenMirrorApp(QMainWindow):
     
     def mouseReleaseEvent(self, event):
         self._drag_pos = None
+
+    def closeEvent(self, event):
+        if hasattr(self, 'process') and self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+        event.accept()
     
     def toggle_connection(self):
         if self.action_button.text() == "CONNECTER":
@@ -183,7 +208,6 @@ class ScreenMirrorApp(QMainWindow):
         """)
         
         try:
-            # Timeout augmenté à 30 secondes
             result = subprocess.run([self.adb_path, "devices"], 
                                   capture_output=True, text=True, timeout=30)
             
@@ -227,7 +251,7 @@ class ScreenMirrorApp(QMainWindow):
             """)
             
         except subprocess.TimeoutExpired:
-            self.status_label.setText("Timeout : ADB n'a pas répondu à temps. Réessayez.")
+            self.status_label.setText("Timeout : ADB n'a pas répondu à temps.")
             self.status_label.setStyleSheet("""
                 font-size: 16px;
                 color: #FF3B30;
@@ -248,8 +272,12 @@ class ScreenMirrorApp(QMainWindow):
             self.action_button.setText("Réessayer")
 
     def stop_connection(self):
-        if hasattr(self, 'process'):
+        if hasattr(self, 'process') and self.process.poll() is None:
             self.process.terminate()
+            try:
+                self.process.wait(timeout=3)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
         
         self.status_label.setText("Prêt à connecter")
         self.status_label.setStyleSheet("""
