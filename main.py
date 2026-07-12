@@ -33,7 +33,6 @@ class ScreenMirrorApp(QMainWindow):
         main_widget = QWidget()
         main_widget.setStyleSheet("""
             background-color: rgba(20, 20, 25, 200);
-            border-radius: 20px;
         """)
         
         shadow = QGraphicsDropShadowEffect()
@@ -49,30 +48,33 @@ class ScreenMirrorApp(QMainWindow):
         layout.setSpacing(25)
         layout.setContentsMargins(40, 20, 40, 30)
         
-        # Barre de contrôle
+        # Barre de contrôle - Coins carrés, style simple
         control_layout = QHBoxLayout()
         control_layout.setContentsMargins(0, 0, 0, 0)
-        control_layout.setSpacing(15)
+        control_layout.setSpacing(10)
         
-        minimize_btn = QLabel("—")
+        btn_style = """
+            QLabel {
+                background-color: rgba(255, 255, 255, 0.08);
+                color: #888;
+                font-size: 16px;
+                padding: 4px 10px;
+            }
+            QLabel:hover {
+                background-color: rgba(255, 255, 255, 0.15);
+                color: #fff;
+            }
+        """
+        
+        minimize_btn = QLabel("─")
         minimize_btn.setAlignment(Qt.AlignCenter)
-        minimize_btn.setStyleSheet("""
-            color: #666;
-            font-size: 20px;
-            font-weight: 300;
-        """)
-        minimize_btn.setFixedSize(24, 24)
+        minimize_btn.setStyleSheet(btn_style)
         minimize_btn.setCursor(Qt.PointingHandCursor)
         minimize_btn.mousePressEvent = lambda event: self.showMinimized()
         
         close_btn = QLabel("✕")
         close_btn.setAlignment(Qt.AlignCenter)
-        close_btn.setStyleSheet("""
-            color: #666;
-            font-size: 18px;
-            font-weight: 400;
-        """)
-        close_btn.setFixedSize(24, 24)
+        close_btn.setStyleSheet(btn_style)
         close_btn.setCursor(Qt.PointingHandCursor)
         close_btn.mousePressEvent = lambda event: self.close()
         
@@ -114,7 +116,6 @@ class ScreenMirrorApp(QMainWindow):
             color: #888888;
             padding: 15px 20px;
             background-color: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
         """)
         layout.addWidget(self.status_label)
         
@@ -129,7 +130,6 @@ class ScreenMirrorApp(QMainWindow):
                 color: white;
                 font-size: 16px;
                 font-weight: 600;
-                border-radius: 28px;
                 border: none;
             }
             QPushButton:hover {
@@ -182,7 +182,6 @@ class ScreenMirrorApp(QMainWindow):
             color: #ffffff;
             padding: 15px 20px;
             background-color: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
         """)
         
         try:
@@ -210,7 +209,6 @@ class ScreenMirrorApp(QMainWindow):
                 color: #4cd964;
                 padding: 15px 20px;
                 background-color: rgba(76, 217, 100, 0.1);
-                border-radius: 12px;
             """)
             
             self.action_button.setText("DÉCONNECTER")
@@ -220,7 +218,6 @@ class ScreenMirrorApp(QMainWindow):
                     color: white;
                     font-size: 16px;
                     font-weight: 600;
-                    border-radius: 28px;
                     border: none;
                 }
                 QPushButton:hover {
@@ -235,7 +232,6 @@ class ScreenMirrorApp(QMainWindow):
                 color: #FF3B30;
                 padding: 15px 20px;
                 background-color: rgba(255, 59, 48, 0.1);
-                border-radius: 12px;
             """)
             self.action_button.setText("Réessayer")
         except Exception as e:
@@ -245,7 +241,6 @@ class ScreenMirrorApp(QMainWindow):
                 color: #FF3B30;
                 padding: 15px 20px;
                 background-color: rgba(255, 59, 48, 0.1);
-                border-radius: 12px;
             """)
             self.action_button.setText("Réessayer")
 
@@ -263,7 +258,6 @@ class ScreenMirrorApp(QMainWindow):
             color: #888888;
             padding: 15px 20px;
             background-color: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
         """)
         
         self.action_button.setText("CONNECTER")
@@ -273,7 +267,6 @@ class ScreenMirrorApp(QMainWindow):
                 color: white;
                 font-size: 16px;
                 font-weight: 600;
-                border-radius: 28px;
                 border: none;
             }
             QPushButton:hover {
